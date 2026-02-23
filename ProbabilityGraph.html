@@ -2,119 +2,326 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <title>Graph</title>
+  <title>攻击概率可视化 | Attack Probability Graph</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .controls { margin-bottom: 20px; }
-    label { display: block; margin-top: 10px; }
-    input[type=range] { width: 300px; }
-    .value { display: inline-block; width: 40px; text-align: right; }
-    canvas { background: #f9f9f9; border: 1px solid #ccc; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      text-align: center;
+      color: #2d3748;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    .controls-panel {
+      background: #f7fafc;
+      padding: 30px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      position: sticky;
+      top: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 0.95rem;
+    }
+
+    .stat-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      min-width: 40px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .stat-badge:hover {
+      transform: scale(1.1);
+    }
+
+    input[type=range] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+    }
+
+    input[type=range]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      font-size: 0.75rem;
+      color: #a0aec0;
+    }
+
+    .chart-container {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .chart-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .legend {
+      display: flex;
+      gap: 20px;
+      font-size: 0.85rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .legend-color.line {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .legend-color.point {
+      background: #e53e3e;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .info-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .info-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .info-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-card.highlight {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .info-label {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .info-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .formula-box {
+      background: #edf2f7;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 0 8px 8px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #4a5568;
+    }
+
+    @media (max-width: 968px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      .controls-panel {
+        position: static;
+      }
+      .info-cards {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>成功概率可调图表</h1>
-  <div class="controls">
-    <label>Character Str R: <span id="rVal" class="value">3</span>
-      <input type="range" id="R" min="1" max="10" value="3" step="1" oninput="update()">
-    </label>
-    <label>Weapon Str W: <span id="wVal" class="value">0</span>
-      <input type="range" id="W" min="0" max="10" value="0" step="1" oninput="update()">
-    </label>
-    <label>Tenecity T: <span id="tVal" class="value">5</span>
-      <input type="range" id="T" min="1" max="10" value="5" step="1" oninput="update()">
-    </label>
-  </div>
-  <canvas id="chart" width="800" height="500"></canvas>
+  <div class="container">
+    <h1>⚔️ 攻击概率可视化</h1>
+    <p class="subtitle">Attack Probability Calculator & Visualizer</p>
+    
+    <div class="main-layout">
+      <div class="controls-panel">
+        <div class="control-group">
+          <div class="control-label">
+            <span>🛡️ 角色力量 (R)</span>
+            <span class="stat-badge" id="rVal">3</span>
+          </div>
+          <input type="range" id="R" min="1" max="10" value="3" step="1" oninput="update()">
+          <div class="range-labels">
+            <span>1</span>
+            <span>10</span>
+          </div>
+        </div>
 
-  <script>
-    const canvas = document.getElementById("chart");
-    const ctx = canvas.getContext("2d");
+        <div class="control-group">
+          <div class="control-label">
+            <span>⚔️ 武器力量 (W)</span>
+            <span class="stat-badge" id="wVal">0</span>
+          </div>
+          <input type="range" id="W" min="0" max="10" value="0" step="1" oninput="update()">
+          <div class="range-labels">
+            <span>0</span>
+            <span>10</span>
+          </div>
+        </div>
 
-    function getProb(R, W, T) {
-      let Tp = Math.max(T - W, 0);
-      if (Tp === 0) return 100;
-      return (R / (R + Tp)) * 100;
-    }
+        <div class="control-group">
+          <div class="control-label">
+            <span>💪 当前坚韧度 (T)</span>
+            <span class="stat-badge" id="tVal">5</span>
+          </div>
+          <input type="range" id="T" min="1" max="10" value="5" step="1" oninput="update()">
+          <div class="range-labels">
+            <span>1</span>
+            <span>10</span>
+          </div>
+        </div>
 
-    function update() {
-      // 更新显示值
-      const R = parseInt(document.getElementById("R").value);
-      const W = parseInt(document.getElementById("W").value);
-      const T = parseInt(document.getElementById("T").value);
-      document.getElementById("rVal").textContent = R;
-      document.getElementById("wVal").textContent = W;
-      document.getElementById("tVal").textContent = T;
+        <div class="formula-box">
+          <strong>计算公式:</strong><br>
+          T' = max(T - W, 0)<br>
+          P = R / (R + T') × 100%
+        </div>
+      </div>
 
-      // 清除画布
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 绘制网格
-      ctx.strokeStyle = "#ddd";
-      ctx.lineWidth = 1;
-      for (let x = 50; x <= 750; x += 50) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 400);
-        ctx.stroke();
-      }
-      for (let y = 50; y <= 400; y += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(750, y);
-        ctx.stroke();
-      }
-
-      // 坐标轴
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(50, 400);
-      ctx.lineTo(700, 400);
-      ctx.lineTo(700, 20);
-      ctx.stroke();
-
-      // 刻度标签
-      ctx.fillStyle = "#000";
-      ctx.font = "12px sans-serif";
-      ctx.textAlign = "center";
-      for (let t = 1; t <= 10; t++) {
-        let x = 50 + (t - 1) * 65;
-        ctx.fillText("T=" + t, x, 420);
-      }
-      ctx.textAlign = "right";
-      for (let p = 0; p <= 100; p += 20) {
-        let y = 400 - p * 3.5;
-        ctx.fillText(p + "%", 45, y + 4);
-      }
-
-      // 计算曲线
-      ctx.beginPath();
-      ctx.strokeStyle = "blue";
-      ctx.lineWidth = 2;
-      for (let t = 1; t <= 10; t++) {
-        let prob = getProb(R, W, t);
-        let x = 50 + (t - 1) * 65;
-        let y = 400 - prob * 3.5;
-        if (t === 1) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-
-      // 当前 T 点标记
-      let curProb = getProb(R, W, T);
-      let curX = 50 + (T - 1) * 65;
-      let curY = 400 - curProb * 3.5;
-      ctx.fillStyle = "red";
-      ctx.beginPath();
-      ctx.arc(curX, curY, 6, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.fillStyle = "black";
-      ctx.fillText(`Current Probability: ${curProb.toFixed(1)}%`, curX, curY - 10);
-    }
-
-    // 初始绘制
-    update();
-  </script>
-</body>
-</html>
+      <div class="chart-wrapper">
+        <div class
