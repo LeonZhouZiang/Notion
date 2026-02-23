@@ -324,4 +324,265 @@
       </div>
 
       <div class="chart-wrapper">
-        <div class
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">概率曲线图</div>
+            <div class="legend">
+              <div class="legend-item">
+                <div class="legend-color line"></div>
+                <span>概率曲线</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color point"></div>
+                <span>当前位置</span>
+              </div>
+            </div>
+          </div>
+          <canvas id="chart" width="800" height="450"></canvas>
+        </div>
+
+        <div class="info-cards">
+          <div class="info-card">
+            <div class="info-label">有效坚韧度</div>
+            <div class="info-value" id="effectiveT">5</div>
+          </div>
+          <div class="info-card highlight">
+            <div class="info-label">当前攻击成功率</div>
+            <div class="info-value" id="currentProb">37.5%</div>
+          </div>
+          <div class="info-card">
+            <div class="info-label">最大可能概率</div>
+            <div class="info-value" id="maxProb">100%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("chart");
+    const ctx = canvas.getContext("2d");
+    
+    // 高DPI支持
+    function setupCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      return rect;
+    }
+
+    function getProb(R, W, T) {
+      let Tp = Math.max(T - W, 0);
+      if (Tp === 0) return 100;
+      return (R / (R + Tp)) * 100;
+    }
+
+    function update() {
+      const R = parseInt(document.getElementById("R").value);
+      const W = parseInt(document.getElementById("W").value);
+      const T = parseInt(document.getElementById("T").value);
+      
+      // 更新显示值
+      document.getElementById("rVal").textContent = R;
+      document.getElementById("wVal").textContent = W;
+      document.getElementById("tVal").textContent = T;
+      
+      // 计算当前值
+      const curProb = getProb(R, W, T);
+      const effectiveT = Math.max(T - W, 0);
+      
+      // 更新信息卡片
+      document.getElementById("effectiveT").textContent = effectiveT;
+      document.getElementById("currentProb").textContent = curProb.toFixed(1) + '%';
+      document.getElementById("maxProb").textContent = W >= 10 ? '100%' : 
+        ((R / (R + Math.max(1 - W, 0))) * 100).toFixed(1) + '%';
+
+      // 设置画布
+      const rect = setupCanvas();
+      const width = rect.width;
+      const height = rect.height;
+      const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+
+      // 清除画布
+      ctx.clearRect(0, 0, width, height);
+
+      // 绘制网格
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      
+      // 垂直网格线
+      for (let i = 0; i <= 10; i++) {
+        const x = padding.left + (i * chartWidth / 9);
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, padding.top + chartHeight);
+        ctx.stroke();
+      }
+      
+      // 水平网格线
+      for (let i = 0; i <= 5; i++) {
+        const y = padding.top + (i * chartHeight / 5);
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + chartWidth, y);
+        ctx.stroke();
+      }
+
+      // 坐标轴
+      ctx.strokeStyle = "#2d3748";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, padding.top);
+      ctx.lineTo(padding.left, padding.top + chartHeight);
+      ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+      ctx.stroke();
+
+      // 刻度标签
+      ctx.fillStyle = "#4a5568";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      
+      // X轴标签
+      for (let t = 1; t <= 10; t++) {
+        const x = padding.left + ((t - 1) * chartWidth / 9);
+        ctx.fillText("T=" + t, x, padding.top + chartHeight + 10);
+      }
+      
+      // Y轴标签
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let p = 0; p <= 100; p += 20) {
+        const y = padding.top + chartHeight - (p * chartHeight / 100);
+        ctx.fillText(p + "%", padding.left - 10, y);
+      }
+
+      // 轴标题
+      ctx.save();
+      ctx.translate(20, padding.top + chartHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillStyle = "#2d3748";
+      ctx.fillText("Success Probability", 0, 0);
+      ctx.restore();
+      
+      ctx.textAlign = "center";
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("Tenacity (T)", padding.left + chartWidth / 2, height - 15);
+
+      // 计算曲线点
+      const points = [];
+      for (let t = 1; t <= 10; t++) {
+        const prob = getProb(R, W, t);
+        const x = padding.left + ((t - 1) * chartWidth / 9);
+        const y = padding.top + chartHeight - (prob * chartHeight / 100);
+        points.push({ x, y, prob, t });
+      }
+
+      // 绘制渐变区域
+      const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+      gradient.addColorStop(0, "rgba(102, 126, 234, 0.3)");
+      gradient.addColorStop(1, "rgba(118, 75, 162, 0.05)");
+      
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, padding.top + chartHeight);
+      points.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // 绘制曲线
+      ctx.beginPath();
+      ctx.strokeStyle = "#667eea";
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      
+      // 使用贝塞尔曲线使线条更平滑
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        const xc = (points[i].x + points[i-1].x) / 2;
+        const yc = (points[i].y + points[i-1].y) / 2;
+        ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, xc, yc);
+      }
+      ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+      ctx.stroke();
+
+      // 绘制数据点
+      points.forEach((p, index) => {
+        ctx.beginPath();
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "#667eea";
+        ctx.lineWidth = 2;
+        ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      // 当前 T 点标记
+      const curPoint = points[T - 1];
+      
+      // 脉冲动画效果
+      const time = Date.now() / 1000;
+      const pulseRadius = 6 + Math.sin(time * 3) * 2;
+      
+      // 外圈光晕
+      ctx.beginPath();
+      ctx.fillStyle = "rgba(229, 62, 62, 0.2)";
+      ctx.arc(curPoint.x, curPoint.y, pulseRadius + 4, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // 内圈实心
+      ctx.beginPath();
+      ctx.fillStyle = "#e53e3e";
+      ctx.arc(curPoint.x, curPoint.y, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 当前值标签
+      ctx.fillStyle = "#e53e3e";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      
+      // 标签背景
+      const text = `${curProb.toFixed(1)}%`;
+      const textWidth = ctx.measureText(text).width;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.fillRect(curPoint.x - textWidth/2 - 8, curPoint.y - 35, textWidth + 16, 24);
+      ctx.strokeStyle = "#e53e3e";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(curPoint.x - textWidth/2 - 8, curPoint.y - 35, textWidth + 16, 24);
+      
+      ctx.fillStyle = "#e53e3e";
+      ctx.fillText(text, curPoint.x, curPoint.y - 18);
+      
+      // 连接线
+      ctx.beginPath();
+      ctx.strokeStyle = "#e53e3e";
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 1;
+      ctx.moveTo(curPoint.x, curPoint.y);
+      ctx.lineTo(curPoint.x, padding.top + chartHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      requestAnimationFrame(update);
+    }
+
+    // 初始绘制
+    update();
+    
+    // 响应式处理
+    window.addEventListener('resize', update);
+  </script>
+</body>
+</html>
