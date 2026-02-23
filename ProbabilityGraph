@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>Graph</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .controls { margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; }
+    input[type=range] { width: 300px; }
+    .value { display: inline-block; width: 40px; text-align: right; }
+    canvas { background: #f9f9f9; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>成功概率可调图表</h1>
+  <div class="controls">
+    <label>Character Str R: <span id="rVal" class="value">3</span>
+      <input type="range" id="R" min="1" max="10" value="3" step="1" oninput="update()">
+    </label>
+    <label>Weapon Str W: <span id="wVal" class="value">0</span>
+      <input type="range" id="W" min="0" max="10" value="0" step="1" oninput="update()">
+    </label>
+    <label>Tenecity T: <span id="tVal" class="value">5</span>
+      <input type="range" id="T" min="1" max="10" value="5" step="1" oninput="update()">
+    </label>
+  </div>
+  <canvas id="chart" width="800" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById("chart");
+    const ctx = canvas.getContext("2d");
+
+    function getProb(R, W, T) {
+      let Tp = Math.max(T - W, 0);
+      if (Tp === 0) return 100;
+      return (R / (R + Tp)) * 100;
+    }
+
+    function update() {
+      // 更新显示值
+      const R = parseInt(document.getElementById("R").value);
+      const W = parseInt(document.getElementById("W").value);
+      const T = parseInt(document.getElementById("T").value);
+      document.getElementById("rVal").textContent = R;
+      document.getElementById("wVal").textContent = W;
+      document.getElementById("tVal").textContent = T;
+
+      // 清除画布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制网格
+      ctx.strokeStyle = "#ddd";
+      ctx.lineWidth = 1;
+      for (let x = 50; x <= 750; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 400);
+        ctx.stroke();
+      }
+      for (let y = 50; y <= 400; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(750, y);
+        ctx.stroke();
+      }
+
+      // 坐标轴
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(50, 400);
+      ctx.lineTo(700, 400);
+      ctx.lineTo(700, 20);
+      ctx.stroke();
+
+      // 刻度标签
+      ctx.fillStyle = "#000";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      for (let t = 1; t <= 10; t++) {
+        let x = 50 + (t - 1) * 65;
+        ctx.fillText("T=" + t, x, 420);
+      }
+      ctx.textAlign = "right";
+      for (let p = 0; p <= 100; p += 20) {
+        let y = 400 - p * 3.5;
+        ctx.fillText(p + "%", 45, y + 4);
+      }
+
+      // 计算曲线
+      ctx.beginPath();
+      ctx.strokeStyle = "blue";
+      ctx.lineWidth = 2;
+      for (let t = 1; t <= 10; t++) {
+        let prob = getProb(R, W, t);
+        let x = 50 + (t - 1) * 65;
+        let y = 400 - prob * 3.5;
+        if (t === 1) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // 当前 T 点标记
+      let curProb = getProb(R, W, T);
+      let curX = 50 + (T - 1) * 65;
+      let curY = 400 - curProb * 3.5;
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(curX, curY, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = "black";
+      ctx.fillText(`Current Probability: ${curProb.toFixed(1)}%`, curX, curY - 10);
+    }
+
+    // 初始绘制
+    update();
+  </script>
+</body>
+</html>
