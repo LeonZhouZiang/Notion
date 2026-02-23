@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>攻击概率可视化 | Attack Probability Graph</title>
   <style>
     * {
@@ -10,23 +11,35 @@
       box-sizing: border-box;
     }
 
+    html {
+      font-size: 16px;
+    }
+
+    @media (max-width: 768px) {
+      html {
+        font-size: 14px;
+      }
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: clamp(10px, 3vw, 40px);
       color: #333;
+      overflow-x: hidden;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
-      border-radius: 24px;
+      border-radius: clamp(12px, 3vw, 24px);
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      padding: 40px;
+      padding: clamp(20px, 4vw, 40px);
       animation: slideIn 0.6s ease-out;
+      width: 100%;
     }
 
     @keyframes slideIn {
@@ -43,41 +56,74 @@
     h1 {
       text-align: center;
       color: #2d3748;
-      margin-bottom: 10px;
-      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
       font-weight: 700;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      line-height: 1.2;
     }
 
     .subtitle {
       text-align: center;
       color: #718096;
-      margin-bottom: 40px;
-      font-size: 1.1rem;
+      margin-bottom: clamp(20px, 4vw, 40px);
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
     }
 
     .main-layout {
       display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 40px;
+      grid-template-columns: 280px 1fr;
+      gap: clamp(20px, 3vw, 40px);
       align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
     }
 
     .controls-panel {
       background: #f7fafc;
-      padding: 30px;
+      padding: clamp(20px, 3vw, 30px);
       border-radius: 16px;
       border: 1px solid #e2e8f0;
       position: sticky;
       top: 20px;
+      height: fit-content;
+    }
+
+    @media (max-width: 900px) {
+      .controls-panel {
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+      }
+      
+      .formula-box {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .controls-panel {
+        grid-template-columns: 1fr;
+      }
     }
 
     .control-group {
       margin-bottom: 25px;
       position: relative;
+    }
+
+    @media (max-width: 900px) {
+      .control-group {
+        margin-bottom: 0;
+      }
     }
 
     .control-label {
@@ -87,7 +133,9 @@
       margin-bottom: 12px;
       font-weight: 600;
       color: #2d3748;
-      font-size: 0.95rem;
+      font-size: clamp(0.85rem, 2vw, 0.95rem);
+      flex-wrap: wrap;
+      gap: 5px;
     }
 
     .stat-badge {
@@ -101,6 +149,7 @@
       text-align: center;
       box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
       transition: transform 0.2s;
+      flex-shrink: 0;
     }
 
     .stat-badge:hover {
@@ -115,6 +164,7 @@
       outline: none;
       -webkit-appearance: none;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -152,45 +202,55 @@
       color: #a0aec0;
     }
 
+    .chart-wrapper {
+      min-width: 0; /* 防止grid溢出 */
+    }
+
     .chart-container {
       background: white;
       border-radius: 16px;
-      padding: 20px;
+      padding: clamp(15px, 3vw, 25px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       position: relative;
+      width: 100%;
     }
 
     .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       padding-bottom: 15px;
       border-bottom: 2px solid #f0f0f0;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .chart-title {
-      font-size: 1.2rem;
+      font-size: clamp(1rem, 3vw, 1.2rem);
       font-weight: 600;
       color: #2d3748;
     }
 
     .legend {
       display: flex;
-      gap: 20px;
-      font-size: 0.85rem;
+      gap: clamp(10px, 2vw, 20px);
+      font-size: clamp(0.75rem, 2vw, 0.85rem);
+      flex-wrap: wrap;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
       gap: 8px;
+      white-space: nowrap;
     }
 
     .legend-color {
       width: 20px;
       height: 3px;
       border-radius: 2px;
+      flex-shrink: 0;
     }
 
     .legend-color.line {
@@ -204,26 +264,38 @@
       border-radius: 50%;
     }
 
-    canvas {
+    .canvas-wrapper {
+      position: relative;
       width: 100%;
-      height: auto;
+      height: 0;
+      padding-bottom: 56.25%; /* 16:9 比例 */
+      min-height: 300px;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       display: block;
       border-radius: 8px;
     }
 
     .info-cards {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-top: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: clamp(10px, 2vw, 15px);
+      margin-top: clamp(20px, 3vw, 30px);
     }
 
     .info-card {
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      padding: 20px;
+      padding: clamp(15px, 3vw, 20px);
       border-radius: 12px;
       text-align: center;
       transition: transform 0.3s, box-shadow 0.3s;
+      min-width: 0;
     }
 
     .info-card:hover {
@@ -237,16 +309,18 @@
     }
 
     .info-label {
-      font-size: 0.85rem;
+      font-size: clamp(0.7rem, 1.8vw, 0.85rem);
       opacity: 0.9;
       margin-bottom: 5px;
       text-transform: uppercase;
       letter-spacing: 1px;
+      word-wrap: break-word;
     }
 
     .info-value {
-      font-size: 1.8rem;
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
       font-weight: 700;
+      word-wrap: break-word;
     }
 
     .formula-box {
@@ -256,19 +330,20 @@
       margin-top: 20px;
       border-radius: 0 8px 8px 0;
       font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
+      font-size: clamp(0.8rem, 2vw, 0.9rem);
       color: #4a5568;
+      overflow-x: auto;
     }
 
-    @media (max-width: 968px) {
-      .main-layout {
-        grid-template-columns: 1fr;
+    @media (max-width: 480px) {
+      .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
       }
-      .controls-panel {
-        position: static;
-      }
-      .info-cards {
-        grid-template-columns: 1fr;
+      
+      .legend {
+        width: 100%;
+        justify-content: flex-start;
       }
     }
   </style>
@@ -338,7 +413,9 @@
               </div>
             </div>
           </div>
-          <canvas id="chart" width="800" height="450"></canvas>
+          <div class="canvas-wrapper">
+            <canvas id="chart"></canvas>
+          </div>
         </div>
 
         <div class="info-cards">
@@ -362,15 +439,36 @@
   <script>
     const canvas = document.getElementById("chart");
     const ctx = canvas.getContext("2d");
+    let animationId = null;
+    let isAnimating = true;
     
-    // 高DPI支持
+    // 获取canvas实际显示尺寸
+    function getCanvasDisplaySize() {
+      const wrapper = canvas.parentElement;
+      const rect = wrapper.getBoundingClientRect();
+      return {
+        width: rect.width,
+        height: rect.height
+      };
+    }
+
+    // 设置高DPI画布
     function setupCanvas() {
+      const size = getCanvasDisplaySize();
       const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      
+      // 设置实际画布尺寸（考虑DPI）
+      canvas.width = size.width * dpr;
+      canvas.height = size.height * dpr;
+      
+      // 设置显示尺寸
+      canvas.style.width = size.width + 'px';
+      canvas.style.height = size.height + 'px';
+      
+      // 缩放上下文以匹配DPI
       ctx.scale(dpr, dpr);
-      return rect;
+      
+      return size;
     }
 
     function getProb(R, W, T) {
@@ -400,10 +498,18 @@
         ((R / (R + Math.max(1 - W, 0))) * 100).toFixed(1) + '%';
 
       // 设置画布
-      const rect = setupCanvas();
-      const width = rect.width;
-      const height = rect.height;
-      const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+      const size = setupCanvas();
+      const width = size.width;
+      const height = size.height;
+      
+      // 响应式边距
+      const padding = {
+        top: height * 0.08,
+        right: width * 0.08,
+        bottom: height * 0.15,
+        left: width * 0.12
+      };
+      
       const chartWidth = width - padding.left - padding.right;
       const chartHeight = height - padding.top - padding.bottom;
 
@@ -415,7 +521,7 @@
       ctx.lineWidth = 1;
       
       // 垂直网格线
-      for (let i = 0; i <= 10; i++) {
+      for (let i = 0; i <= 9; i++) {
         const x = padding.left + (i * chartWidth / 9);
         ctx.beginPath();
         ctx.moveTo(x, padding.top);
@@ -443,14 +549,14 @@
 
       // 刻度标签
       ctx.fillStyle = "#4a5568";
-      ctx.font = "12px sans-serif";
+      ctx.font = `${Math.max(10, height * 0.025)}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       
       // X轴标签
       for (let t = 1; t <= 10; t++) {
         const x = padding.left + ((t - 1) * chartWidth / 9);
-        ctx.fillText("T=" + t, x, padding.top + chartHeight + 10);
+        ctx.fillText("T=" + t, x, padding.top + chartHeight + height * 0.02);
       }
       
       // Y轴标签
@@ -458,22 +564,23 @@
       ctx.textBaseline = "middle";
       for (let p = 0; p <= 100; p += 20) {
         const y = padding.top + chartHeight - (p * chartHeight / 100);
-        ctx.fillText(p + "%", padding.left - 10, y);
+        ctx.fillText(p + "%", padding.left - width * 0.02, y);
       }
 
       // 轴标题
+      const fontSize = Math.max(12, height * 0.035);
       ctx.save();
-      ctx.translate(20, padding.top + chartHeight / 2);
+      ctx.translate(fontSize, padding.top + chartHeight / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.textAlign = "center";
-      ctx.font = "bold 14px sans-serif";
+      ctx.font = `bold ${fontSize}px sans-serif`;
       ctx.fillStyle = "#2d3748";
       ctx.fillText("Success Probability", 0, 0);
       ctx.restore();
       
       ctx.textAlign = "center";
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillText("Tenacity (T)", padding.left + chartWidth / 2, height - 15);
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillText("Tenacity (T)", padding.left + chartWidth / 2, height - fontSize);
 
       // 计算曲线点
       const points = [];
@@ -500,7 +607,7 @@
       // 绘制曲线
       ctx.beginPath();
       ctx.strokeStyle = "#667eea";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(2, height * 0.006);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       
@@ -515,12 +622,13 @@
       ctx.stroke();
 
       // 绘制数据点
+      const pointRadius = Math.max(3, height * 0.008);
       points.forEach((p, index) => {
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.strokeStyle = "#667eea";
         ctx.lineWidth = 2;
-        ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+        ctx.arc(p.x, p.y, pointRadius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
       });
@@ -530,7 +638,7 @@
       
       // 脉冲动画效果
       const time = Date.now() / 1000;
-      const pulseRadius = 6 + Math.sin(time * 3) * 2;
+      const pulseRadius = pointRadius + 2 + Math.sin(time * 3) * 2;
       
       // 外圈光晕
       ctx.beginPath();
@@ -541,29 +649,34 @@
       // 内圈实心
       ctx.beginPath();
       ctx.fillStyle = "#e53e3e";
-      ctx.arc(curPoint.x, curPoint.y, 6, 0, 2 * Math.PI);
+      ctx.arc(curPoint.x, curPoint.y, pointRadius + 2, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // 当前值标签
-      ctx.fillStyle = "#e53e3e";
-      ctx.font = "bold 14px sans-serif";
+      const labelFontSize = Math.max(11, height * 0.028);
+      ctx.font = `bold ${labelFontSize}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       
       // 标签背景
       const text = `${curProb.toFixed(1)}%`;
       const textWidth = ctx.measureText(text).width;
+      const labelPadding = width * 0.015;
+      const labelY = curPoint.y - height * 0.025;
+      
       ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-      ctx.fillRect(curPoint.x - textWidth/2 - 8, curPoint.y - 35, textWidth + 16, 24);
+      ctx.fillRect(curPoint.x - textWidth/2 - labelPadding, labelY - labelFontSize - labelPadding, 
+                   textWidth + labelPadding*2, labelFontSize + labelPadding*2);
       ctx.strokeStyle = "#e53e3e";
       ctx.lineWidth = 1;
-      ctx.strokeRect(curPoint.x - textWidth/2 - 8, curPoint.y - 35, textWidth + 16, 24);
+      ctx.strokeRect(curPoint.x - textWidth/2 - labelPadding, labelY - labelFontSize - labelPadding, 
+                     textWidth + labelPadding*2, labelFontSize + labelPadding*2);
       
       ctx.fillStyle = "#e53e3e";
-      ctx.fillText(text, curPoint.x, curPoint.y - 18);
+      ctx.fillText(text, curPoint.x, labelY);
       
       // 连接线
       ctx.beginPath();
@@ -575,14 +688,41 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      requestAnimationFrame(update);
+      if (isAnimating) {
+        animationId = requestAnimationFrame(update);
+      }
     }
+
+    // 使用 ResizeObserver 监听容器大小变化
+    const resizeObserver = new ResizeObserver(entries => {
+      // 防抖处理
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      update();
+    });
+
+    resizeObserver.observe(canvas.parentElement);
 
     // 初始绘制
     update();
-    
-    // 响应式处理
-    window.addEventListener('resize', update);
+
+    // 页面可见性变化时暂停/恢复动画
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        isAnimating = false;
+        if (animationId) cancelAnimationFrame(animationId);
+      } else {
+        isAnimating = true;
+        update();
+      }
+    });
+
+    // 清理
+    window.addEventListener('beforeunload', () => {
+      resizeObserver.disconnect();
+      if (animationId) cancelAnimationFrame(animationId);
+    });
   </script>
 </body>
 </html>
